@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+/* Simple hover effects for service cards */
+.service-card {
+  transition: all 0.2s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.76);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #FFFFFF, #9CA3AF);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #F9FAFB, #6B7280);
+}
