@@ -83,11 +83,10 @@ function App() {
       // Send Auto-Reply using send method
       const autoReplyData = {
         user_name: userName,
-        user_email: userEmail,
+        email: userEmail, // changed from user_email to email
         whatsapp: whatsapp,
         services: selectedServices,
-        message: message,
-        to_email: userEmail // Make sure this matches your template variable
+        message: message
       };
       
       console.log('Sending auto-reply with data:', autoReplyData);
