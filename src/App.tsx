@@ -1,53 +1,142 @@
 import './App.css';
 import emailjs from '@emailjs/browser';
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
 function App() {
   const formRef = useRef<HTMLFormElement>(null);
+
+  // Initialize EmailJS
+  useEffect(() => {
+    emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const form = formRef.current;
-    if (!form) return;
+    if (!form) {
+      alert('Form not found');
+      return;
+    }
+
+    console.log('Starting email submission...');
+    
+    // Validate environment variables
+    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+    const autoReplyTemplateId = import.meta.env.VITE_EMAILJS_AUTOREPLY_TEMPLATE_ID;
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+    console.log('Environment variables:', {
+      serviceId: serviceId ? 'Present' : 'Missing',
+      templateId: templateId ? 'Present' : 'Missing',
+      autoReplyTemplateId: autoReplyTemplateId ? 'Present' : 'Missing',
+      publicKey: publicKey ? 'Present' : 'Missing'
+    });
+
+    if (!serviceId || !templateId || !autoReplyTemplateId || !publicKey) {
+      alert('EmailJS configuration is missing. Please check environment variables.');
+      return;
+    }
+
+    // Get form data
+    const formData = new FormData(form);
+    const userName = formData.get('user_name') as string;
+    const userEmail = formData.get('user_email') as string;
+    const whatsapp = formData.get('whatsapp') as string;
+    const message = formData.get('message') as string;
 
     // Get selected services
     const selectedServices = Array.from(
       form.querySelectorAll('input[name="services"]:checked')
     ).map((el) => (el as HTMLInputElement).value).join(', ');
 
-    // Send to Admin
-    emailjs.sendForm(
-      import.meta.env.VITE_EMAILJS_SERVICE_ID,
-      import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-      form,
-      import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-    ).then(() => {
-      // Send Auto-Reply
-      emailjs.send(
-        import.meta.env.VITE_EMAILJS_SERVICE_ID,
-        import.meta.env.VITE_EMAILJS_AUTOREPLY_TEMPLATE_ID,
-        {
-          user_name: form.user_name.value,
-          user_email: form.user_email.value,
-          whatsapp: form.whatsapp.value,
-          services: selectedServices,
-          message: form.message.value,
-        },
-        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-      );
+    console.log('Form data:', {
+      userName,
+      userEmail,
+      whatsapp,
+      services: selectedServices,
+      message
+    });
 
-      alert('Your request has been submitted!');
+    if (!userName || !userEmail) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    // Disable submit button
+    const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending...';
+    }
+
+    // Send to Admin using sendForm
+    emailjs.sendForm(
+      serviceId,
+      templateId,
+      form,
+      publicKey
+    ).then((result) => {
+      console.log('Admin email sent successfully:', result);
+      
+      // Send Auto-Reply using send method
+      const autoReplyData = {
+        user_name: userName,
+        user_email: userEmail,
+        whatsapp: whatsapp,
+        services: selectedServices,
+        message: message,
+        to_email: userEmail // Make sure this matches your template variable
+      };
+      
+      console.log('Sending auto-reply with data:', autoReplyData);
+      
+      return emailjs.send(
+        serviceId,
+        autoReplyTemplateId,
+        autoReplyData,
+        publicKey
+      );
+    }).then((autoReplyResult) => {
+      console.log('Auto-reply sent successfully:', autoReplyResult);
+      alert('Your request has been submitted successfully! You should receive a confirmation email shortly.');
       form.reset();
     }).catch((err) => {
-      console.error('EmailJS Error:', err.text);
-      alert('Failed to send request.');
+      console.error('EmailJS Error:', err);
+      console.error('Error details:', {
+        status: err.status,
+        text: err.text,
+        message: err.message
+      });
+      
+      let errorMessage = 'Failed to send request. ';
+      if (err.status === 422) {
+        errorMessage += 'Template validation failed. Please check your EmailJS template configuration.';
+      } else if (err.status === 400) {
+        errorMessage += 'Bad request. Please check your EmailJS service and template IDs.';
+      } else if (err.status === 401) {
+        errorMessage += 'Unauthorized. Please check your EmailJS public key.';
+      } else {
+        errorMessage += `Error: ${err.text || err.message || 'Unknown error'}`;
+      }
+      
+      alert(errorMessage);
+    }).finally(() => {
+      // Re-enable submit button
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Submit Request';
+      }
     });
   };
 
   return (
     <div className='min-h-screen w-full bg-gradient-to-br from-gray-900 via-black to-gray-800 flex items-center overflow-x-hidden flex-col gap-8'>
-      <div className="w-full max-w-screen-full mb-8 h-24 sm:h-32 rounded-b-[50px] bg-white/10 backdrop-blur-sm border border-white/20 shadow-xl content-center text-center">
+      <div className="w-full max-w-screen-full mb-8 h-24 sm:h-32 rounded-b-[50px] bg-white/10 backdrop-blur-sm border border-white/20 shadow-xl flex items-center justify-center gap-4 px-4">
+        <div className='h-12 w-12 sm:h-16 sm:w-16 overflow-hidden rounded-full'>
+          <img src="/generate a image you.png" alt="Lacleo Juris Logo" className="w-full h-full object-cover" />
+        </div>
         <p className='text-white font-bold text-2xl sm:text-3xl md:text-4xl'>
           Lacleo Juris
         </p>
